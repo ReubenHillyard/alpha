@@ -3,6 +3,7 @@
 pub use crate::dictionaries::Closure;
 use crate::Identifier;
 use std::fmt;
+use std::ops::Deref;
 
 /// The result of a computation.
 ///
@@ -62,7 +63,37 @@ impl fmt::Display for Neutral {
 }
 
 /// A [`Value`] which denotes a type.
-pub type Type = Value;
+#[derive(Clone)]
+pub struct Type(/*pub(crate)*/ Value);
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Deref for Type {
+    type Target = Value;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Type> for Value {
+    fn from(value: Type) -> Self {
+        value.0
+    }
+}
+
+impl Type {
+    pub(crate) fn create_type_from_value(value: Value) -> Type {
+        Type(value)
+    }
+
+    /// The universe type.
+    pub const UNIVERSE: Type = Type(Value::Universe);
+}
 
 pub(crate) struct TypedValue {
     pub type_: Type,

@@ -1,5 +1,6 @@
 //! Functions for type-checking and type-inference.
 
+use std::ops::Deref;
 use crate::environment::{type_var, Context, Definitions, Environment};
 use crate::equivalence::judgmentally_equal;
 use crate::evaluation::evaluate;
@@ -22,7 +23,7 @@ pub fn check_type(
             param_type: None::<_>,
             ret_val,
         } => {
-            let Value::PiType{ param_type, tclosure } = type_ else {
+            let Value::PiType{ param_type, tclosure } = type_.deref() else {
                 return Err(TypeError{
                     msg: format!(
                         "{} is not of type {}, because all lambda terms are of pi types.",
@@ -37,11 +38,16 @@ pub fn check_type(
                     neu: Neutral::Variable(param.clone()),
                 },
             );
-            check_type(defs, &ctx.extend(param, param_type), ret_val, &ret_type)
+            check_type(
+                defs,
+                &ctx.extend(param, param_type),
+                ret_val,
+                &Type::create_type_from_value(ret_type),
+            )
         }
         _ => {
             let syn_type = synth_type(defs, ctx, expr)?;
-            judgmentally_equal(defs, ctx, &syn_type, type_, &Value::Universe)
+            judgmentally_equal(defs, ctx, &syn_type, &type_, &Type::UNIVERSE)
         }
     }
 }
@@ -56,15 +62,15 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
             tparam_type,
             ret_type,
         } => {
-            check_type(defs, ctx, tparam_type, &Value::Universe)?;
+            check_type(defs, ctx, tparam_type, &Type::UNIVERSE)?;
             let tparam_type = evaluate(defs, &Environment::from_context(ctx), tparam_type);
             check_type(
                 defs,
-                &ctx.extend(tparam, &tparam_type),
+                &ctx.extend(tparam, &Type::create_type_from_value(tparam_type)),
                 ret_type,
-                &Value::Universe,
+                &Type::UNIVERSE,
             )?;
-            Ok(Value::Universe)
+            Ok(Type::UNIVERSE)
         }
         Lambda {
             param,
@@ -76,18 +82,20 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
                     msg: format!("Cannot infer a type for lambda expression `{}` without parameter type given.", expr)
                 })
             };
-            check_type(defs, ctx, param_type, &Value::Universe)?;
-            let param_type = evaluate(defs, &Environment::from_context(ctx), param_type);
-            let ret_type = synth_type(defs, &ctx.extend(param, &param_type), ret_val)?;
-            let ret_type = read_back_typed(defs, ctx, &ret_type, &Value::Universe);
-            Ok(Value::PiType {
+            check_type(defs, ctx, param_type, &Type::UNIVERSE)?;
+            let param_type = Type::create_type_from_value(
+                evaluate(defs, &Environment::from_context(ctx), param_type));
+            let ret_type =
+                synth_type(defs, &ctx.extend(param, &param_type), ret_val)?;
+            let ret_type = read_back_typed(defs, ctx, &ret_type, &Type::UNIVERSE);
+            Ok(Type::create_type_from_value(Value::PiType {
                 param_type: Box::new(param_type),
                 tclosure: Closure::new_in_ctx(ctx, param.clone(), ret_type),
-            })
+            }))
         }
         Application { func, arg } => {
             let func_type = synth_type(defs, ctx, func)?;
-            let Value::PiType{ param_type, tclosure } = &func_type else {
+            let Value::PiType{ param_type, tclosure } = func_type.deref() else {
                 return Err(TypeError{
                     msg: format!(
                         "Cannot call `{}` as a function, because it is of non-function type `{}`.",
@@ -97,12 +105,12 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
             };
             check_type(defs, ctx, arg, param_type)?;
             let arg = evaluate(defs, &Environment::from_context(ctx), arg);
-            Ok(tclosure.call(defs, &arg))
+            Ok(Type::create_type_from_value(tclosure.call(defs, &arg)))
         }
-        Universe => Ok(Value::Universe),
+        Universe => Ok(Type::UNIVERSE),
         Annotation { expr, type_ } => {
-            check_type(defs, ctx, type_, &Value::Universe)?;
-            let type_ = evaluate(defs, &Environment::from_context(ctx), type_);
+            check_type(defs, ctx, type_, &Type::UNIVERSE)?;
+            let type_ = Type::create_type_from_value(evaluate(defs, &Environment::from_context(ctx), type_));
             check_type(defs, ctx, expr, &type_)?;
             Ok(type_)
         }

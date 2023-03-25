@@ -2,7 +2,7 @@
 
 use crate::environment::{evaluate_var, Definitions, Environment};
 use crate::expression::Expression;
-use crate::value::{Closure, Neutral, Value};
+use crate::value::{Closure, Neutral, Type, Value};
 
 /// Evaluates an expression to a value.
 pub fn evaluate(defs: &Definitions, env: &Environment, expr: &Expression) -> Value {
@@ -14,7 +14,7 @@ pub fn evaluate(defs: &Definitions, env: &Environment, expr: &Expression) -> Val
             tparam_type,
             ret_type,
         } => Value::PiType {
-            param_type: Box::new(evaluate(defs, env, tparam_type)),
+            param_type: Box::new(Type::create_type_from_value(evaluate(defs, env, tparam_type))),
             tclosure: Closure::new_in_env(env, tparam.clone(), *ret_type.clone()),
         },
         Lambda { param, ret_val, .. } => Value::Lambda {
