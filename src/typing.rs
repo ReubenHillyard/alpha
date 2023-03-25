@@ -1,6 +1,5 @@
 //! Functions for type-checking and type-inference.
 
-use std::ops::Deref;
 use crate::environment::{type_var, Context, Definitions, Environment};
 use crate::equivalence::judgmentally_equal;
 use crate::evaluation::evaluate;
@@ -8,6 +7,7 @@ use crate::expression::Expression;
 use crate::read_back::read_back_typed;
 use crate::value::{Closure, Neutral, Type, Value};
 use crate::TypeError;
+use std::ops::Deref;
 
 /// Checks the [`Type`] of an [`Expression`].
 pub fn check_type(
@@ -47,7 +47,7 @@ pub fn check_type(
         }
         _ => {
             let syn_type = synth_type(defs, ctx, expr)?;
-            judgmentally_equal(defs, ctx, &syn_type, &type_, &Type::UNIVERSE)
+            judgmentally_equal(defs, ctx, &syn_type, type_, &Type::UNIVERSE)
         }
     }
 }
@@ -83,10 +83,12 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
                 })
             };
             check_type(defs, ctx, param_type, &Type::UNIVERSE)?;
-            let param_type = Type::create_type_from_value(
-                evaluate(defs, &Environment::from_context(ctx), param_type));
-            let ret_type =
-                synth_type(defs, &ctx.extend(param, &param_type), ret_val)?;
+            let param_type = Type::create_type_from_value(evaluate(
+                defs,
+                &Environment::from_context(ctx),
+                param_type,
+            ));
+            let ret_type = synth_type(defs, &ctx.extend(param, &param_type), ret_val)?;
             let ret_type = read_back_typed(defs, ctx, &ret_type, &Type::UNIVERSE);
             Ok(Type::create_type_from_value(Value::PiType {
                 param_type: Box::new(param_type),
@@ -110,7 +112,11 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
         Universe => Ok(Type::UNIVERSE),
         Annotation { expr, type_ } => {
             check_type(defs, ctx, type_, &Type::UNIVERSE)?;
-            let type_ = Type::create_type_from_value(evaluate(defs, &Environment::from_context(ctx), type_));
+            let type_ = Type::create_type_from_value(evaluate(
+                defs,
+                &Environment::from_context(ctx),
+                type_,
+            ));
             check_type(defs, ctx, expr, &type_)?;
             Ok(type_)
         }

@@ -14,7 +14,11 @@ pub fn evaluate(defs: &Definitions, env: &Environment, expr: &Expression) -> Val
             tparam_type,
             ret_type,
         } => Value::PiType {
-            param_type: Box::new(Type::create_type_from_value(evaluate(defs, env, tparam_type))),
+            param_type: Box::new(Type::create_type_from_value(evaluate(
+                defs,
+                env,
+                tparam_type,
+            ))),
             tclosure: Closure::new_in_env(env, tparam.clone(), *ret_type.clone()),
         },
         Lambda { param, ret_val, .. } => Value::Lambda {

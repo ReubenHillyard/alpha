@@ -1,12 +1,12 @@
 //! Functions for reading back [`Value`]s as [`Expression`]s.
 
-use std::ops::Deref;
 use crate::environment::{Context, Definitions};
 use crate::evaluation::do_apply;
 use crate::expression::Expression;
 use crate::identifier::fresh_identifier;
 use crate::typing::synth_type;
 use crate::value::{Neutral, Type, Value};
+use std::ops::Deref;
 
 /// Reads back a [`Type`]d [`Value`] to an [`Expression`] in beta-normal, eta-long form.
 pub fn read_back_typed(defs: &Definitions, ctx: &Context, val: &Value, type_: &Type) -> Expression {
@@ -15,7 +15,7 @@ pub fn read_back_typed(defs: &Definitions, ctx: &Context, val: &Value, type_: &T
             param_type,
             tclosure,
         } => {
-            let fresh_id = fresh_identifier(defs, ctx, &tclosure);
+            let fresh_id = fresh_identifier(defs, ctx, tclosure);
             let fresh_var = Value::Neutral {
                 neu: Neutral::Variable(fresh_id.clone()),
             };
@@ -36,7 +36,7 @@ pub fn read_back_typed(defs: &Definitions, ctx: &Context, val: &Value, type_: &T
                 param_type,
                 tclosure,
             } => {
-                let fresh_id = fresh_identifier(defs, ctx, &tclosure);
+                let fresh_id = fresh_identifier(defs, ctx, tclosure);
                 let fresh_var = Value::Neutral {
                     neu: Neutral::Variable(fresh_id.clone()),
                 };
@@ -46,8 +46,7 @@ pub fn read_back_typed(defs: &Definitions, ctx: &Context, val: &Value, type_: &T
                     &tclosure.call(defs, &fresh_var),
                     &Type::UNIVERSE,
                 );
-                let param_type =
-                    read_back_typed(defs, ctx, param_type, &Type::UNIVERSE);
+                let param_type = read_back_typed(defs, ctx, param_type, &Type::UNIVERSE);
                 Expression::PiType {
                     tparam: fresh_id,
                     tparam_type: Box::new(param_type),
