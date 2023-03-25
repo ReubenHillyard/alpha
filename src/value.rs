@@ -1,6 +1,8 @@
 //! Types representing computed values.
 
 pub use crate::dictionaries::Closure;
+use crate::expression::Expression;
+use crate::lists::Context;
 use crate::Identifier;
 use std::fmt;
 use std::ops::Deref;
@@ -89,6 +91,19 @@ impl From<Type> for Value {
 impl Type {
     pub(crate) fn create_type_from_value(value: Value) -> Type {
         Type(value)
+    }
+
+    /// Builds pi types.
+    pub fn pi_type(
+        ctx: &Context,
+        param: Identifier,
+        param_type: Type,
+        ret_type: Expression,
+    ) -> Type {
+        Type(Value::PiType {
+            param_type: Box::new(param_type),
+            tclosure: Closure::new_in_ctx(ctx, param.clone(), ret_type),
+        })
     }
 
     /// The universe type.

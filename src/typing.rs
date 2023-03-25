@@ -5,7 +5,7 @@ use crate::equivalence::judgmentally_equal;
 use crate::evaluation::evaluate;
 use crate::expression::Expression;
 use crate::read_back::read_back_typed;
-use crate::value::{Closure, Neutral, Type, Value};
+use crate::value::{Neutral, Type, Value};
 use crate::TypeError;
 use std::ops::Deref;
 
@@ -90,10 +90,7 @@ pub fn synth_type(defs: &Definitions, ctx: &Context, expr: &Expression) -> crate
             ));
             let ret_type = synth_type(defs, &ctx.extend(param, &param_type), ret_val)?;
             let ret_type = read_back_typed(defs, ctx, &ret_type, &Type::UNIVERSE);
-            Ok(Type::create_type_from_value(Value::PiType {
-                param_type: Box::new(param_type),
-                tclosure: Closure::new_in_ctx(ctx, param.clone(), ret_type),
-            }))
+            Ok(Type::pi_type(ctx, param.clone(), param_type, ret_type))
         }
         Application { func, arg } => {
             let func_type = synth_type(defs, ctx, func)?;
