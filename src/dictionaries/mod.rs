@@ -120,7 +120,7 @@ pub fn evaluate_var(defs: &Definitions, env: &Environment, var: &Identifier) -> 
         .unwrap()
 }
 
-/// An [`Value`] which depends on an argument,
+/// A [`Value`] which depends on an argument,
 /// and captures the [`Environment`] in which it was created.
 #[derive(Clone)]
 pub struct Closure {
@@ -147,7 +147,7 @@ impl Closure {
         self.env.names()
     }
 
-    /// Calls the closure an argument.
+    /// Calls the closure with an argument.
     pub fn call(&self, defs: &Definitions, val: &Value) -> Value {
         evaluate(
             defs,
